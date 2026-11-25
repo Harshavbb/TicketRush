@@ -47,4 +47,33 @@ public interface ShowSeatRepository extends JpaRepository<ShowSeat, Long> {
           AND ss.status = 'LOCKED'
         """)
     int releaseSeatsForExpiredBookings(@Param("bookingIds") List<Long> bookingIds);
+
+
+
+    public interface SeatMapRow {
+        Long getShowSeatId();
+        String getSeatNumber();
+        String getSeatType();
+        java.math.BigDecimal getPrice();
+        String getEffectiveStatus();
+    }
+
+    @Query(value = """
+    SELECT ss.show_seat_id AS showSeatId,
+           s.seat_number   AS seatNumber,
+           s.seat_type     AS seatType,
+           ss.price        AS price,
+           CASE
+               WHEN ss.status = 'LOCKED' AND ss.locked_until <= :now THEN 'AVAILABLE'
+               ELSE ss.status
+           END             AS effectiveStatus
+    FROM show_seat ss
+    JOIN seat s ON ss.seat_id = s.seat_id
+    WHERE ss.show_id = :showId
+    ORDER BY s.seat_number ASC
+    """, nativeQuery = true)
+    List<SeatMapRow> findSeatMapByShowId(@Param("showId") Long showId, @Param("now") Instant now);
 }
+
+
+
